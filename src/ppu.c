@@ -2724,6 +2724,29 @@ static void S9xRenderSpan (void)
 	/* The renderer's own copy; see SRenderRegs.FixedColour. */
 	GFX.FixedColour = S9xCurRenderRegs->FixedColour;
 
+	/* Clear the depth of the lines this span draws, here rather than for
+	   the whole frame when it starts: the spans of a frame cover disjoint
+	   line ranges and a line's depth only matters while that line is
+	   drawn, so the result is the same, and with the threaded renderer the
+	   clear runs on the renderer's thread instead of the CPU's (it was a
+	   few percent of the emulation thread). Every render path addresses
+	   the buffers as Y * PPL (+ RealPPL for the odd interlaced field), so
+	   [StartY * PPL, (EndY + 1) * PPL) covers what the span touches. A
+	   forced-blank span draws nothing and needs none. */
+	if (!S9xCurRenderRegs->ForcedBlanking
+	      && S9xCurRenderRegs->EndY >= S9xCurRenderRegs->StartY)
+	{
+		size_t from = (size_t)S9xCurRenderRegs->StartY * S9xCurRenderRegs->PPL;
+		size_t to   = (size_t)(S9xCurRenderRegs->EndY + 1) * S9xCurRenderRegs->PPL;
+		if (to > GFX.ScreenSize)
+			to = GFX.ScreenSize;
+		if (to > from)
+		{
+			memset(GFX.ZBuffer    + from, 0, to - from);
+			memset(GFX.SubZBuffer + from, 0, to - from);
+		}
+	}
+
 	if (S9xCurRenderRegs->SetupOBJ)
 		SetupOBJ();
 
