@@ -358,17 +358,17 @@ static const int objsize_array[8][4] = {
 	{16,	32,	32,	32}, /*7*/
 };
 
-void SetupOBJ (void)
+static void SetupOBJFrom (const struct SRenderRegs *regs)
 {
 	int	Height, Y_two, SmallWidth, SmallHeight, LargeWidth, LargeHeight, inc, startline;
 	uint8_t	S, Y_one, line;
 
-	if(S9xCurRenderRegs->OBJSizeSelect < 8)
+	if(regs->OBJSizeSelect < 8)
 	{
-		SmallWidth	= objsize_array[S9xCurRenderRegs->OBJSizeSelect][0];
-		SmallHeight	= objsize_array[S9xCurRenderRegs->OBJSizeSelect][1];
-		LargeWidth	= objsize_array[S9xCurRenderRegs->OBJSizeSelect][2];
-		LargeHeight	= objsize_array[S9xCurRenderRegs->OBJSizeSelect][3];
+		SmallWidth	= objsize_array[regs->OBJSizeSelect][0];
+		SmallHeight	= objsize_array[regs->OBJSizeSelect][1];
+		LargeWidth	= objsize_array[regs->OBJSizeSelect][2];
+		LargeHeight	= objsize_array[regs->OBJSizeSelect][3];
    }else{
       /* default */
       SmallWidth	= objsize_array[4][0];
@@ -377,8 +377,8 @@ void SetupOBJ (void)
       LargeHeight	= objsize_array[4][3];
    }
 
-	inc = S9xCurRenderRegs->InterlaceOBJ ? 2 : 1;
-	startline = (S9xCurRenderRegs->InterlaceOBJ && S9xCurRenderRegs->InterlaceFrame) ? 1 : 0;
+	inc = regs->InterlaceOBJ ? 2 : 1;
+	startline = (regs->InterlaceOBJ && regs->InterlaceFrame) ? 1 : 0;
 
 	/* OK, we have three cases here. Either there's no priority, priority 
 	   is normal FirstSprite, or priority is FirstSprite+Y. The first two 
@@ -387,7 +387,7 @@ void SetupOBJ (void)
 	   So we split them up. */
 
 
-	if (!S9xCurRenderRegs->OAMPriorityRotation || !(S9xCurRenderRegs->OAMFlip & S9xCurRenderRegs->OAMAddr & 1)) /* normal case*/
+	if (!regs->OAMPriorityRotation || !(regs->OAMFlip & regs->OAMAddr & 1)) /* normal case*/
 	{
 		int i, j;
 		uint8_t	LineOBJ[SNES_HEIGHT_EXTENDED], FirstSprite;
@@ -402,7 +402,7 @@ void SetupOBJ (void)
 				GFX.OBJLines[i].OBJ[j].Sprite = -1;
 		}
 
-		FirstSprite = S9xCurRenderRegs->FirstSprite;
+		FirstSprite = regs->FirstSprite;
 		S = FirstSprite;
 
 		do
@@ -411,13 +411,13 @@ void SetupOBJ (void)
 			GFX.OBJWidths[S] = SmallWidth;
 			Height = SmallHeight;
 
-			if (S9xCurRenderRegs->OBJ[S].Size)
+			if (regs->OBJ[S].Size)
 			{
 				GFX.OBJWidths[S] = LargeWidth;
 				Height = LargeHeight;
 			}
 
-			HPos = S9xCurRenderRegs->OBJ[S].HPos;
+			HPos = regs->OBJ[S].HPos;
 			if (HPos == -256)
 				HPos = 0;
 
@@ -431,7 +431,7 @@ void SetupOBJ (void)
 				else
 					GFX.OBJVisibleTiles[S] = GFX.OBJWidths[S] >> 3;
 
-				Y_one = (uint8_t) (S9xCurRenderRegs->OBJ[S].VPos & 0xff);
+				Y_one = (uint8_t) (regs->OBJ[S].VPos & 0xff);
 				for (line = startline; line < Height; Y_one++, line += inc)
 				{
 					if (Y_one >= SNES_HEIGHT_EXTENDED)
@@ -450,7 +450,7 @@ void SetupOBJ (void)
 					GFX.OBJLines[Y_one].OBJ[LineOBJ[Y_one]].Sprite = S;
 					GFX.OBJLines[Y_one].OBJ[LineOBJ[Y_one]].Line = line;
 
-					if (S9xCurRenderRegs->OBJ[S].VFlip)
+					if (regs->OBJ[S].VFlip)
 						/* Yes, Width not Height. It so happens that the*/
 						/* sprites with H=2*W flip as two WxW sprites.*/
 						GFX.OBJLines[Y_one].OBJ[LineOBJ[Y_one]].Line ^= (GFX.OBJWidths[S] - 1);
@@ -475,11 +475,11 @@ void SetupOBJ (void)
 
 		for (S = 0; S < 128; S++)
 		{
-         int HPos = S9xCurRenderRegs->OBJ[S].HPos;
+         int HPos = regs->OBJ[S].HPos;
          if (HPos == -256)
             HPos = 256;
 
-			if (S9xCurRenderRegs->OBJ[S].Size)
+			if (regs->OBJ[S].Size)
 			{
 				GFX.OBJWidths[S] = LargeWidth;
 				Height = LargeHeight;
@@ -500,7 +500,7 @@ void SetupOBJ (void)
 				else
 					GFX.OBJVisibleTiles[S] = GFX.OBJWidths[S] >> 3;
 
-				Y_one = (uint8_t) (S9xCurRenderRegs->OBJ[S].VPos & 0xff);
+				Y_one = (uint8_t) (regs->OBJ[S].VPos & 0xff);
 				for (line = startline; line < Height; Y_one++, line += inc)
 				{
 					if (Y_one >= SNES_HEIGHT_EXTENDED)
@@ -512,7 +512,7 @@ void SetupOBJ (void)
                   AnyOBJOnLine[Y_one] = TRUE;
                }
 
-					if (S9xCurRenderRegs->OBJ[S].VFlip)
+					if (regs->OBJ[S].VFlip)
 						/* Yes, Width not Height. It so happens that the*/
 						/* sprites with H=2*W flip as two WxW sprites.*/
 						OBJOnLine[Y_one][S] ^= (GFX.OBJWidths[S] - 1);
@@ -530,7 +530,7 @@ void SetupOBJ (void)
 			GFX.OBJLines[Y_two].RTOFlags = Y_two ? GFX.OBJLines[Y_two - 1].RTOFlags : 0;
 			GFX.OBJLines[Y_two].Tiles = (reduce_sprite_flicker ? 60 : 34);
 
-			FirstSprite = (S9xCurRenderRegs->FirstSprite + Y_two) & 0x7f;
+			FirstSprite = (regs->FirstSprite + Y_two) & 0x7f;
 			S = FirstSprite;
 			j = 0;
 
@@ -564,6 +564,32 @@ void SetupOBJ (void)
 
 	/* Cleared where the span is recorded instead: this runs on the
 	   renderer's side, and the flag belongs to the CPU. */
+}
+
+void SetupOBJ (void)
+{
+	SetupOBJFrom(S9xCurRenderRegs);
+}
+
+/* For a frame that is not drawn (the frontend asked for no video, for a
+ * skipped frame or a runahead pass): the CPU still evaluates the sprites
+ * of every line, for the range/time-over flags. No span is recorded then,
+ * so neither the render snapshot nor its object table follow the PPU: the
+ * snapshot was never taken if no frame has been drawn yet (its OBJ is
+ * NULL), and it is stale otherwise. Evaluate from the live registers and
+ * the live object table instead, as snes9x did before the renderer read
+ * a snapshot. */
+void S9xSetupOBJLive (void)
+{
+	static struct SRenderRegs live;
+
+	S9xSnapshotRenderRegs(&live);
+	live.OBJ = PPU.OBJ;
+	SetupOBJFrom(&live);
+
+	/* The CPU owns the flag and nothing is recorded for this frame:
+	   clear it here, or every following line would evaluate again. */
+	IPPU.OBJChanged = FALSE;
 }
 
 

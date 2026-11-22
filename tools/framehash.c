@@ -54,6 +54,13 @@
  *   --option K=V   answer the core's request for option K with V.
  *                  Repeatable.  Anything not named keeps the core's
  *                  own default, so a plain run stays reproducible.
+ *   --skip N       report video as not wanted (RETRO_ENVIRONMENT_GET_AUDIO_
+ *                  VIDEO_ENABLE) for the first frame and then every Nth
+ *                  frame, 0 for the first frame only, as a frontend does
+ *                  when it skips frames.  The core still emulates those
+ *                  frames, without drawing them; the digest of a skipped
+ *                  frame is the previous picture.  The audio digest must
+ *                  match a run without --skip.
  *   --quiet        digests only, no core log output
  *
  * The digest is FNV-1a over the visible pixels only -- width * 2 bytes
@@ -110,6 +117,8 @@ static unsigned frame_no;
 static int      opt_swfb;
 static int      opt_quiet;
 static unsigned opt_start;
+static int      opt_skip_on;
+static unsigned opt_skip;
 
 #define FH_MAX_OPTIONS 16
 static const char *opt_key[FH_MAX_OPTIONS];
@@ -189,6 +198,19 @@ static bool fh_environment(unsigned cmd, void *data)
       case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
          *(bool*)data = false;
          return true;
+
+      case RETRO_ENVIRONMENT_GET_AUDIO_VIDEO_ENABLE:
+      {
+         /* bit 0 video, bit 1 audio.  Not answered without --skip, so a
+          * plain run keeps the core's own default path. */
+         int skip;
+
+         if (!opt_skip_on)
+            return false;
+         skip = (frame_no <= 1) || (opt_skip && (frame_no % opt_skip) == 0);
+         *(int*)data = skip ? 2 : 3;
+         return true;
+      }
 
       case RETRO_ENVIRONMENT_GET_CAN_DUPE:
          *(bool*)data = true;
@@ -408,7 +430,7 @@ static void usage(void)
    fprintf(stderr,
       "usage: framehash <core> <rom> [--frames N] [--interval N]\n"
       "                 [--start N] [--replay N] [--option K=V]\n"
-      "                 [--swfb] [--quiet]\n");
+      "                 [--skip N] [--swfb] [--quiet]\n");
 }
 
 int main(int argc, char **argv)
@@ -464,6 +486,11 @@ int main(int argc, char **argv)
          opt_ppm = argv[++i];
       else if (!strcmp(argv[i], "--swfb"))
          opt_swfb = 1;
+      else if (!strcmp(argv[i], "--skip") && i + 1 < argc)
+      {
+         opt_skip_on = 1;
+         opt_skip    = (unsigned)strtoul(argv[++i], NULL, 0);
+      }
       else if (!strcmp(argv[i], "--quiet"))
          opt_quiet = 1;
       else

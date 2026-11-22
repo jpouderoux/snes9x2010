@@ -478,7 +478,7 @@ static void RenderLine (uint8_t C)
 		/* if we're not rendering this frame, we still need to update this
 		   XXX: Check ForceBlank? Or anything else? */
 		if (IPPU.OBJChanged)
-			SetupOBJ();
+			S9xSetupOBJLive();
 		PPU.RangeTimeOver |= GFX.OBJLines[C].RTOFlags;
 	}
 }

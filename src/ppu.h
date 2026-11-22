@@ -800,6 +800,7 @@ void S9xMode7VertResample (void);
 uint8_t S9xGraphicsInit (void);
 void S9xGraphicsDeinit (void);
 void SetupOBJ (void);
+void S9xSetupOBJLive (void);
 
 extern uint8_t coldata_update_screen;
 
